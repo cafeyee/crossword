@@ -22,6 +22,20 @@
     --radius-sm: 10px;
     --shadow:    0 4px 20px rgba(160,32,64,0.25);
   }
+
+  /* Hidden input to trigger iPad/mobile keyboard */
+  #hidden-input {
+    position: fixed;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    top: 0; left: 0;
+    border: none;
+    outline: none;
+    padding: 0;
+    font-size: 16px; /* prevents iOS auto-zoom */
+    pointer-events: none;
+  }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
   body {
@@ -355,6 +369,7 @@
 </head>
 <body>
 
+<input id="hidden-input" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
 <div class="header">
   <div class="header-title">🥝 Kiwi Crossword <span>NZ Primary</span></div>
   <div class="score-pill" id="score-display">Score: 0</div>
@@ -684,12 +699,14 @@ function selectCell(r,c){
   }
   selectedCell=[r,c];
   highlightCells(); highlightClue();
+  focusInput();
 }
 
 function selectClue(r,c,dir){
   selectedCell=[r,c]; selectedDirection=dir;
   highlightCells(); highlightClue();
   document.getElementById('crossword-grid').scrollIntoView({behavior:'smooth',block:'nearest'});
+  focusInput();
 }
 
 function highlightCells(){
@@ -854,6 +871,45 @@ window.addEventListener('resize',()=>{
       highlightClue();
     }
   }, 80);
+});
+
+function focusInput(){
+  const inp = document.getElementById('hidden-input');
+  if(!inp) return;
+  inp.value = '';
+  inp.focus();
+}
+
+// Handle input from hidden field (iPad soft keyboard)
+document.addEventListener('DOMContentLoaded', ()=>{
+  const inp = document.getElementById('hidden-input');
+  if(!inp) return;
+
+  inp.addEventListener('input', (e)=>{
+    if(!selectedCell) return;
+    const val = inp.value.replace(/[^a-zA-Z]/g,'');
+    if(val.length > 0){
+      const ch = val[val.length-1].toUpperCase();
+      const[r,c]=selectedCell;
+      const el=document.getElementById(`letter-${r}-${c}`);
+      if(el) el.textContent=ch;
+      moveCursor(1);
+    }
+    inp.value='';
+  });
+
+  inp.addEventListener('keydown', (e)=>{
+    if(e.key==='Backspace'){
+      if(!selectedCell) return;
+      const[r,c]=selectedCell;
+      const el=document.getElementById(`letter-${r}-${c}`);
+      if(el&&el.textContent){el.textContent='';inp.value='';return;}
+      moveCursor(-1);
+      const el2=document.getElementById(`letter-${selectedCell[0]}-${selectedCell[1]}`);
+      if(el2) el2.textContent='';
+      inp.value='';
+    }
+  });
 });
 
 window.onload=()=>{buildKeyboard();newGame();};
