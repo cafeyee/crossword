@@ -2,38 +2,39 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
 <title>Kiwi Crossword</title>
 <style>
   :root {
     --rose:      #e8445a;
     --rose-dark: #c03050;
-    --rose-deep: #a02040;
-    --rose-light:#f07080;
     --rose-pale: #f8c0c8;
     --bg:        #e8445a;
-    --cell-bg:   #ffffff;
     --cell-active: #ffd0d8;
-    --cell-word:   rgba(255,255,255,0.55);
     --black-cell:  #c03050;
-    --text:      #2a1020;
-    --text-light:#ffffff;
     --radius:    14px;
     --radius-sm: 10px;
     --shadow:    0 4px 20px rgba(160,32,64,0.25);
   }
+  /* Colour themes - applied to body */
+  body.theme-pink   { --bg:#e8445a; --rose-dark:#c03050; --rose-pale:#f8c0c8; --black-cell:#b02848; --cell-active:#ffd0d8; --shadow:0 4px 20px rgba(160,32,64,0.25); }
+  body.theme-orange { --bg:#e87c30; --rose-dark:#b85c10; --rose-pale:#ffe0c0; --black-cell:#b05a10; --cell-active:#ffe8cc; --shadow:0 4px 20px rgba(180,100,20,0.25); }
+  body.theme-purple { --bg:#8b5cf6; --rose-dark:#6d3fd4; --rose-pale:#e8d8ff; --black-cell:#6530c0; --cell-active:#ede0ff; --shadow:0 4px 20px rgba(100,50,200,0.25); }
+  body.theme-blue   { --bg:#3b82f6; --rose-dark:#1d5fc4; --rose-pale:#c8e0ff; --black-cell:#1a50b0; --cell-active:#d8eaff; --shadow:0 4px 20px rgba(30,80,180,0.25); }
+  body.theme-green  { --bg:#22c55e; --rose-dark:#158a40; --rose-pale:#c0f0d0; --black-cell:#128038; --cell-active:#d0f8e0; --shadow:0 4px 20px rgba(20,130,60,0.25); }
+  body.theme-teal   { --bg:#14b8a6; --rose-dark:#0d8a7a; --rose-pale:#b8f0e8; --black-cell:#0a7868; --cell-active:#ccf5ef; --shadow:0 4px 20px rgba(10,120,100,0.25); }
 
   /* Hidden input to trigger iPad/mobile keyboard */
   #hidden-input {
-    position: fixed;
+    position: absolute;
     opacity: 0;
     width: 1px;
     height: 1px;
-    top: 0; left: 0;
+    top: -9999px; left: -9999px;
     border: none;
     outline: none;
     padding: 0;
-    font-size: 16px; /* prevents iOS auto-zoom */
+    font-size: 16px;
     pointer-events: none;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -149,21 +150,21 @@
   }
 
   .cell-wrap {
-    background: var(--cell-bg);
+    background: #ffffff;
+    border: 2.5px solid rgba(255,255,255,0.55);
     border-radius: 8px;
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: background 0.15s, transform 0.1s;
-    /* size set by JS */
+    transition: background 0.15s, transform 0.1s, border-color 0.15s;
   }
   .cell-wrap:active { transform: scale(0.93); }
-  .cell-wrap.active-word { background: rgba(255,255,255,0.65); }
-  .cell-wrap.active { background: var(--rose-pale); box-shadow: 0 0 0 3px #fff; }
-  .cell-wrap.correct { background: #c8f0d8; }
-  .cell-wrap.incorrect { background: #ffd0d0; }
+  .cell-wrap.active-word { background: rgba(255,255,255,0.82); border-color: rgba(255,255,255,0.9); }
+  .cell-wrap.active { background: #ffffff; border-color: #fff; box-shadow: 0 0 0 3px rgba(255,255,255,0.9); }
+  .cell-wrap.correct { background: #c8f0d8; border-color: #5dbb7e; }
+  .cell-wrap.incorrect { background: #ffd0d0; border-color: #f07070; }
 
   .cell-num {
     position: absolute;
@@ -181,6 +182,7 @@
     text-transform: uppercase;
     user-select: none;
   }
+  .cell-num { color: var(--rose-dark); }
 
   /* ACTION BUTTONS */
   .action-row {
@@ -330,41 +332,7 @@
   }
   .modal-play-btn:hover { background: var(--rose-dark); transform: translateY(-1px); }
 
-  /* KEYBOARD (mobile) */
-  .keyboard {
-    display: none;
-    flex-direction: column;
-    gap: 6px;
-    padding: 10px 16px 16px;
-    max-width: 500px;
-    margin: 0 auto;
-    width: 100%;
-  }
-  @media (max-width: 700px) {
-    .keyboard { display: flex; }
-  }
-  .kb-row {
-    display: flex;
-    justify-content: center;
-    gap: 5px;
-  }
-  .kb-key {
-    min-width: 30px;
-    height: 42px;
-    border-radius: 8px;
-    border: none;
-    background: rgba(255,255,255,0.85);
-    color: var(--rose-dark);
-    font-weight: 800;
-    font-size: 0.9rem;
-    cursor: pointer;
-    flex: 1;
-    max-width: 38px;
-    transition: all 0.12s;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .kb-key:active { background: var(--rose-pale); transform: scale(0.92); }
-  .kb-key.wide { max-width: 56px; font-size: 0.75rem; }
+
 </style>
 </head>
 <body>
@@ -407,12 +375,7 @@
   </div>
 </div>
 
-<!-- Mobile keyboard -->
-<div class="keyboard" id="keyboard">
-  <div class="kb-row" id="kb-row1"></div>
-  <div class="kb-row" id="kb-row2"></div>
-  <div class="kb-row" id="kb-row3"></div>
-</div>
+
 
 <!-- Modal -->
 <div class="modal-overlay" id="modal">
@@ -492,6 +455,16 @@ const DIFFICULTY_COUNT = { easy:[6,8], medium:[10,12], hard:[15,18] };
 let currentDifficulty = 'easy';
 let grid=[], placedWords=[], selectedCell=null, selectedDirection='across', score=0;
 const GRID_SIZE = 15;
+const THEMES = ['theme-pink','theme-orange','theme-purple','theme-blue','theme-green','theme-teal'];
+let themeIndex = 0;
+
+function applyTheme(){
+  document.body.className = THEMES[themeIndex];
+}
+function nextTheme(){
+  themeIndex = (themeIndex + 1) % THEMES.length;
+  applyTheme();
+}
 
 function setDifficulty(diff) {
   currentDifficulty = diff;
@@ -849,16 +822,9 @@ function showModal(ok,correct,total){
   document.getElementById('modal').classList.add('show');
 }
 
-function closeModal(){document.getElementById('modal').classList.remove('show');newGame();}
+function closeModal(){document.getElementById('modal').classList.remove('show');nextTheme();newGame();}
 
-// Mobile keyboard
-function buildKeyboard(){
-  const rows=[['Q','W','E','R','T','Y','U','I','O','P'],['A','S','D','F','G','H','J','K','L'],['↔','Z','X','C','V','B','N','M','⌫']];
-  rows.forEach((row,i)=>{
-    const el=document.getElementById(`kb-row${i+1}`);
-    el.innerHTML=row.map(k=>`<button class="kb-key${k.length>1?' wide':''}" onclick="typeKey('${k}')">${k}</button>`).join('');
-  });
-}
+
 
 let resizeTimer;
 window.addEventListener('resize',()=>{
@@ -912,7 +878,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   });
 });
 
-window.onload=()=>{buildKeyboard();newGame();};
+window.onload=()=>{applyTheme();newGame();};
 </script>
 </body>
 </html>
