@@ -720,6 +720,8 @@ function handleKey(e){
   if(e.key==='ArrowUp'){selectedDirection='down';moveCursor(-1);return;}
   if(e.key==='Tab'){e.preventDefault();cycleWord(e.shiftKey?-1:1);return;}
   if(/^[a-zA-Z]$/.test(e.key)){
+    // skip if event came from hidden input (mobile) - handled by input event
+    if(e.target && e.target.id==='hidden-input') return;
     const el=document.getElementById(`letter-${r}-${c}`);
     if(el)el.textContent=e.key.toUpperCase();
     moveCursor(1);
@@ -851,21 +853,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const inp = document.getElementById('hidden-input');
   if(!inp) return;
 
-  inp.addEventListener('input', (e)=>{
-    if(!selectedCell) return;
-    const val = inp.value.replace(/[^a-zA-Z]/g,'');
-    if(val.length > 0){
-      const ch = val[val.length-1].toUpperCase();
-      const[r,c]=selectedCell;
-      const el=document.getElementById(`letter-${r}-${c}`);
-      if(el) el.textContent=ch;
-      moveCursor(1);
-    }
-    inp.value='';
-  });
-
+  // keydown: handle Backspace only, and suppress it from firing input event
   inp.addEventListener('keydown', (e)=>{
     if(e.key==='Backspace'){
+      e.preventDefault();
       if(!selectedCell) return;
       const[r,c]=selectedCell;
       const el=document.getElementById(`letter-${r}-${c}`);
@@ -874,6 +865,20 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const el2=document.getElementById(`letter-${selectedCell[0]}-${selectedCell[1]}`);
       if(el2) el2.textContent='';
       inp.value='';
+    }
+  });
+
+  // input: handle letters only (fires after keydown, value already updated)
+  inp.addEventListener('input', (e)=>{
+    if(!selectedCell) return;
+    const val = inp.value.replace(/[^a-zA-Z]/g,'');
+    inp.value=''; // clear immediately to prevent accumulation
+    if(val.length > 0){
+      const ch = val[val.length-1].toUpperCase();
+      const[r,c]=selectedCell;
+      const el=document.getElementById(`letter-${r}-${c}`);
+      if(el) el.textContent=ch;
+      moveCursor(1);
     }
   });
 });
