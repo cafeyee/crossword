@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kiwi Crossword</title>
+<style>
+  :root {
+    --bg: #f0f4f8;
+    --surface: #ffffff;
+    --surface2: #e8edf3;
+    --primary: #4f8ef7;
+    --primary2: #7b5ea7;
+    --accent: #f7934f;
+    --success: #3dbb7e;
+    --error: #f75f5f;
+    --text: #2d3a4a;
+    --text-light: #7a8fa6;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 4px 16px rgba(79,142,247,0.10);
+    --shadow-sm: 0 2px 8px rgba(79,142,247,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* HEADER */
+  .header {
+    background: linear-gradient(135deg, #4f8ef7 0%, #7b5ea7 100%);
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 12px rgba(79,142,247,0.18);
+  }
+  .header h1 {
+    color: #fff;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  .header h1 span { opacity: 0.75; font-weight: 400; font-size: 1rem; margin-left: 10px; }
+  .header-score {
+    background: rgba(255,255,255,0.18);
+    border-radius: 20px;
+    padding: 6px 18px;
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+
+  /* MAIN LAYOUT */
+  .main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 28px 20px;
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 24px;
+  }
+  @media (max-width: 800px) {
+    .main { grid-template-columns: 1fr; }
+  }
+
+  /* DIFFICULTY SELECTOR */
+  .difficulty-bar {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .difficulty-bar label {
+    font-weight: 600;
+    color: var(--text-light);
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+  .diff-btn {
+    padding: 8px 22px;
+    border-radius: 20px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    background: var(--surface);
+    color: var(--text-light);
+    box-shadow: var(--shadow-sm);
+  }
+  .diff-btn:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+  .diff-btn.active-easy { background: linear-gradient(135deg,#3dbb7e,#56d49b); color:#fff; border-color: transparent; }
+  .diff-btn.active-medium { background: linear-gradient(135deg,#f7934f,#f7c44f); color:#fff; border-color: transparent; }
+  .diff-btn.active-hard { background: linear-gradient(135deg,#f75f5f,#c84fff); color:#fff; border-color: transparent; }
+  .new-game-btn {
+    margin-left: auto;
+    padding: 8px 22px;
+    border-radius: 20px;
+    border: none;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.9rem;
+    background: linear-gradient(135deg, #4f8ef7, #7b5ea7);
+    color: #fff;
+    box-shadow: var(--shadow);
+    transition: all 0.2s;
+  }
+  .new-game-btn:hover { transform: translateY(-1px); opacity: 0.92; }
+
+  /* GRID AREA */
+  .grid-area {
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+  .grid-wrap {
+    overflow: auto;
+    max-width: 100%;
+  }
+  #crossword-grid {
+    border-collapse: collapse;
+    margin: 0 auto;
+  }
+  #crossword-grid td {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    position: relative;
+  }
+  .cell-black {
+    background: #2d3a4a;
+    border-radius: 4px;
+  }
+  .cell-input-wrap {
+    width: 44px;
+    height: 44px;
+    position: relative;
+    background: var(--surface2);
+    border: 2px solid #c8d4e8;
+    border-radius: var(--radius-sm);
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .cell-input-wrap:hover { border-color: var(--primary); }
+  .cell-input-wrap.active {
+    border-color: var(--primary);
+    background: #eaf1ff;
+    box-shadow: 0 0 0 3px rgba(79,142,247,0.18);
+  }
+  .cell-input-wrap.active-word {
+    background: #f0f6ff;
+    border-color: #a0bfef;
+  }
+  .cell-input-wrap.correct { background: #e6f9f0; border-color: var(--success); }
+  .cell-input-wrap.incorrect { background: #fff0f0; border-color: var(--error); }
+  .cell-num {
+    position: absolute;
+    top: 3px;
+    left: 4px;
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--primary2);
+    line-height: 1;
+    pointer-events: none;
+  }
+  .cell-letter {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text);
+    text-transform: uppercase;
+    text-align: center;
+    width: 100%;
+    line-height: 1;
+  }
+
+  /* ACTION BUTTONS */
+  .action-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .btn {
+    padding: 10px 26px;
+    border-radius: 20px;
+    border: none;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+    box-shadow: var(--shadow-sm);
+  }
+  .btn:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+  .btn-submit {
+    background: linear-gradient(135deg, #4f8ef7, #7b5ea7);
+    color: #fff;
+  }
+  .btn-reveal {
+    background: linear-gradient(135deg, #f7934f, #f7c44f);
+    color: #fff;
+  }
+  .btn-clear {
+    background: var(--surface2);
+    color: var(--text-light);
+    border: 2px solid #c8d4e8;
+  }
+
+  /* RESULT BANNER */
+  .result-banner {
+    width: 100%;
+    padding: 14px 20px;
+    border-radius: var(--radius-sm);
+    font-weight: 700;
+    font-size: 1rem;
+    text-align: center;
+    display: none;
+  }
+  .result-banner.show { display: block; }
+  .result-banner.success { background: linear-gradient(135deg,#e6f9f0,#b8f0d4); color: #1a7a4a; border: 1.5px solid #3dbb7e; }
+  .result-banner.partial { background: linear-gradient(135deg,#fff5e6,#ffe0b2); color: #a05a10; border: 1.5px solid #f7934f; }
+
+  /* CLUES PANEL */
+  .clues-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .clues-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 18px;
+  }
+  .clues-card h3 {
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--surface2);
+  }
+  .clues-card.across h3 { color: var(--primary); }
+  .clues-card.down h3 { color: var(--primary2); }
+  .clue-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 7px 8px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background 0.15s;
+    margin-bottom: 4px;
+  }
+  .clue-item:hover { background: var(--surface2); }
+  .clue-item.active-clue { background: #eaf1ff; }
+  .clue-num-badge {
+    min-width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .across .clue-num-badge { background: #dbeafe; color: var(--primary); }
+  .down .clue-num-badge { background: #ede9f8; color: var(--primary2); }
+  .clue-text {
+    font-size: 0.88rem;
+    color: var(--text);
+    line-height: 1.4;
+  }
+  .clue-emoji { font-size: 1.1rem; }
+
+  /* MODAL OVERLAY */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(45,58,74,0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    display: none;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal-box {
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 40px 36px;
+    text-align: center;
+    box-shadow: 0 16px 48px rgba(79,142,247,0.18);
+    max-width: 380px;
+    width: 90%;
+  }
+  .modal-icon { font-size: 3.5rem; margin-bottom: 16px; }
+  .modal-title { font-size: 1.6rem; font-weight: 800; margin-bottom: 8px; }
+  .modal-title.success { color: var(--success); }
+  .modal-title.fail { color: var(--error); }
+  .modal-sub { color: var(--text-light); font-size: 0.95rem; margin-bottom: 24px; }
+  .modal-btn {
+    padding: 12px 32px;
+    border-radius: 24px;
+    border: none;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 1rem;
+    background: linear-gradient(135deg, #4f8ef7, #7b5ea7);
+    color: #fff;
+    box-shadow: var(--shadow);
+    transition: all 0.2s;
+  }
+  .modal-btn:hover { transform: translateY(-2px); opacity: 0.92; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🥝 Kiwi Crossword <span>NZ Primary School Edition</span></h1>
+  <div class="header-score" id="score-display">Score: 0</div>
+</div>
+
+<div class="main">
+  <div class="difficulty-bar">
+    <label>Difficulty:</label>
+    <button class="diff-btn active-easy" data-diff="easy" onclick="setDifficulty('easy')">🌱 Easy (6-8)</button>
+    <button class="diff-btn" data-diff="medium" onclick="setDifficulty('medium')">🌤 Medium (10-12)</button>
+    <button class="diff-btn" data-diff="hard" onclick="setDifficulty('hard')">🌪 Hard (15-18)</button>
+    <button class="new-game-btn" onclick="newGame()">🔄 New Game</button>
+  </div>
+
+  <div class="grid-area">
+    <div class="grid-wrap">
+      <table id="crossword-grid"></table>
+    </div>
+    <div class="result-banner" id="result-banner"></div>
+    <div class="action-row">
+      <button class="btn btn-submit" onclick="submitAnswer()">✅ Submit Answer</button>
+      <button class="btn btn-reveal" onclick="revealHint()">💡 Reveal Hint</button>
+      <button class="btn btn-clear" onclick="clearAll()">🗑 Clear All</button>
+    </div>
+  </div>
+
+  <div class="clues-panel">
+    <div class="clues-card across">
+      <h3>→ Across</h3>
+      <div id="clues-across"></div>
+    </div>
+    <div class="clues-card down">
+      <h3>↓ Down</h3>
+      <div id="clues-down"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal-box">
+    <div class="modal-icon" id="modal-icon"></div>
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-sub" id="modal-sub"></div>
+    <button class="modal-btn" onclick="closeModal()">Play Again 🎉</button>
+  </div>
+</div>
+
+<script>
+// ===================== WORD BANK =====================
+const WORD_BANK = [
+  // Animals
+  { word:"CAT",    emoji:"🐱", easy:"A small furry pet that says meow",      medium:"🐱 A common pet with whiskers",         hard:"A domestic feline" },
+  { word:"DOG",    emoji:"🐶", easy:"A fluffy pet that barks and wags",       medium:"🐶 Mans best friend",                   hard:"A loyal canine companion" },
+  { word:"COW",    emoji:"🐄", easy:"A big farm animal that gives us milk",   medium:"🐄 Lives on a farm, gives milk",         hard:"A bovine farm animal" },
+  { word:"PIG",    emoji:"🐷", easy:"A pink farm animal that rolls in mud",   medium:"🐷 Oink oink, loves mud",               hard:"A porcine animal raised on farms" },
+  { word:"HEN",    emoji:"🐔", easy:"A bird on a farm that lays eggs",        medium:"🐔 Lays eggs on the farm",              hard:"An adult female chicken" },
+  { word:"BEE",    emoji:"🐝", easy:"A buzzing insect that makes honey",      medium:"🐝 Makes honey and buzzes",             hard:"A flying insect that pollinates flowers" },
+  { word:"ANT",    emoji:"🐜", easy:"A tiny insect that carries big things",  medium:"🐜 Very small, lives in a colony",      hard:"A eusocial insect in family Formicidae" },
+  { word:"OWL",    emoji:"🦉", easy:"A bird that hoots at night",             medium:"🦉 A bird awake at night",              hard:"A nocturnal bird of prey" },
+  { word:"FOX",    emoji:"🦊", easy:"An orange wild animal with a bushy tail",medium:"🦊 Orange, clever, bushy tail",         hard:"A cunning wild canid" },
+  { word:"DUCK",   emoji:"🦆", easy:"A bird that swims and goes quack",       medium:"🦆 Quacks and swims in ponds",          hard:"An aquatic bird in family Anatidae" },
+  { word:"FROG",   emoji:"🐸", easy:"A green animal that jumps and croaks",   medium:"🐸 Green, jumps, lives near water",     hard:"An amphibian that undergoes metamorphosis" },
+  { word:"FISH",   emoji:"🐟", easy:"An animal that lives in water and swims",medium:"🐟 Lives underwater, has fins",         hard:"An aquatic vertebrate with gills" },
+  { word:"BIRD",   emoji:"🐦", easy:"An animal with wings that can fly",      medium:"🐦 Has wings and a beak",               hard:"A warm-blooded vertebrate with feathers" },
+  { word:"BEAR",   emoji:"🐻", easy:"A big furry animal that loves honey",    medium:"🐻 Big, furry, sleeps in winter",       hard:"A large omnivorous mammal" },
+  { word:"LION",   emoji:"🦁", easy:"A big cat that roars and lives in Africa",medium:"🦁 King of the jungle, roars",         hard:"A large social felid found in Africa" },
+  { word:"HORSE",  emoji:"🐴", easy:"A big animal you can ride on",           medium:"🐴 You can ride it, it neighs",         hard:"A domesticated equine mammal" },
+  { word:"SHEEP",  emoji:"🐑", easy:"A fluffy white farm animal",             medium:"🐑 White, fluffy, gives us wool",       hard:"A ruminant mammal raised for wool" },
+  { word:"RABBIT", emoji:"🐰", easy:"A cute animal with long ears that hops", medium:"🐰 Long ears, loves carrots",           hard:"A small burrowing lagomorph" },
+  // Food
+  { word:"APPLE",  emoji:"🍎", easy:"A round red or green fruit",             medium:"🍎 Crunchy, red or green fruit",        hard:"A pome fruit from the Malus tree" },
+  { word:"MANGO",  emoji:"🥭", easy:"A sweet yellow tropical fruit",          medium:"🥭 Sweet, yellow inside, tropical",     hard:"A tropical drupe, Mangifera indica" },
+  { word:"GRAPE",  emoji:"🍇", easy:"A small round fruit that grows in bunches",medium:"🍇 Grows in bunches on a vine",       hard:"A small berry of the Vitis genus" },
+  { word:"LEMON",  emoji:"🍋", easy:"A yellow fruit that tastes very sour",   medium:"🍋 Very sour, yellow, citrus",          hard:"A citrus fruit known for its acidity" },
+  { word:"MELON",  emoji:"🍈", easy:"A big round fruit with green skin",      medium:"🍈 Big, round, juicy inside",           hard:"A large cucurbit fruit" },
+  { word:"PEACH",  emoji:"🍑", easy:"A soft pink fruit with a fuzzy skin",    medium:"🍑 Soft, fuzzy skin, sweet",            hard:"A stone fruit, Prunus persica" },
+  { word:"PLUM",   emoji:"🫐", easy:"A small purple fruit with a stone inside",medium:"🫐 Small, dark purple, sweet",        hard:"A drupe in the subgenus Prunus" },
+  { word:"PEAR",   emoji:"🍐", easy:"A green fruit shaped like a teardrop",   medium:"🍐 Green, teardrop shape",              hard:"A pome fruit in genus Pyrus" },
+  { word:"CORN",   emoji:"🌽", easy:"A yellow vegetable that grows on a cob", medium:"🌽 Yellow, grows on a cob",             hard:"A cereal grain, Zea mays" },
+  { word:"CARROT", emoji:"🥕", easy:"An orange vegetable that rabbits love",  medium:"🥕 Orange, long, grows underground",    hard:"A root vegetable, Daucus carota" },
+  { word:"BREAD",  emoji:"🍞", easy:"A soft baked food made from flour",      medium:"🍞 Baked, soft, made from flour",       hard:"A staple food made by baking leavened dough" },
+  { word:"CAKE",   emoji:"🎂", easy:"A sweet baked food for birthdays",       medium:"🎂 Sweet, baked, for celebrations",     hard:"A sweet baked confection" },
+  { word:"MILK",   emoji:"🥛", easy:"A white drink that comes from cows",     medium:"🥛 White, liquid, from cows",           hard:"A nutritious white bovine liquid" },
+  { word:"EGG",    emoji:"🥚", easy:"A round food that comes from a bird",    medium:"🥚 Round, from a hen, in a shell",      hard:"An ovum laid by a hen" },
+  // Colours and Shapes
+  { word:"RED",    emoji:"🔴", easy:"The colour of an apple or a fire truck", medium:"🔴 Colour of apples and fire",          hard:"A primary additive colour, long wavelength" },
+  { word:"BLUE",   emoji:"🔵", easy:"The colour of the sky and the ocean",    medium:"🔵 Colour of the sky",                  hard:"A primary colour with short wavelength" },
+  { word:"GREEN",  emoji:"🟢", easy:"The colour of grass and leaves",         medium:"🟢 Colour of trees and grass",          hard:"A secondary colour between blue and yellow" },
+  { word:"PINK",   emoji:"🩷", easy:"A light red colour, like a flamingo",    medium:"🩷 Light red, like a flamingo",         hard:"A tint of red produced by mixing white" },
+  { word:"CIRCLE", emoji:"⭕", easy:"A perfectly round shape with no corners",medium:"⭕ Round, no corners",                  hard:"A plane figure equidistant from its centre" },
+  { word:"STAR",   emoji:"⭐", easy:"A shape with five points, like in the sky",medium:"⭐ Five points, shines in the night sky",hard:"A polygon with multiple acute points" },
+  { word:"OVAL",   emoji:"🥚", easy:"A shape like a squashed circle, like an egg",medium:"🥚 Egg-shaped, like a stretched circle", hard:"An elongated rounded closed plane curve" },
+  // Nature
+  { word:"SUN",    emoji:"☀️", easy:"A big bright ball of fire in the sky",   medium:"☀️ Gives us light and warmth",          hard:"The star at the centre of our solar system" },
+  { word:"MOON",   emoji:"🌙", easy:"A bright round shape we see at night",   medium:"🌙 Shines at night in the sky",         hard:"Earths only natural satellite" },
+  { word:"RAIN",   emoji:"🌧", easy:"Water that falls from clouds",           medium:"🌧 Water falling from the sky",          hard:"Liquid precipitation from clouds" },
+  { word:"SNOW",   emoji:"❄️", easy:"Soft white flakes that fall in winter",  medium:"❄️ Cold, white, falls in winter",       hard:"Crystalline water ice precipitation" },
+  { word:"WIND",   emoji:"💨", easy:"Moving air you can feel but not see",    medium:"💨 You can feel it but not see it",      hard:"The flow of gases on a large scale" },
+  { word:"CLOUD",  emoji:"☁️", easy:"A white fluffy shape floating in the sky",medium:"☁️ White and fluffy, floats in sky",   hard:"A visible mass of water droplets in atmosphere" },
+  { word:"TREE",   emoji:"🌳", easy:"A tall plant with a trunk and branches", medium:"🌳 Tall, has leaves and a trunk",        hard:"A perennial woody plant with a trunk" },
+  { word:"LEAF",   emoji:"🍃", easy:"A green flat part that grows on a plant",medium:"🍃 Flat, green, grows on trees",         hard:"The main photosynthetic organ of vascular plants" },
+  { word:"GRASS",  emoji:"🌿", easy:"The green plant that covers lawns",      medium:"🌿 Green, covers the ground",            hard:"A monocot plant in family Poaceae" },
+  { word:"RIVER",  emoji:"🏞", easy:"A long flow of water through the land",  medium:"🏞 Water flowing through land",          hard:"A natural flowing watercourse" },
+  { word:"STONE",  emoji:"🪨", easy:"A small hard piece of rock",             medium:"🪨 Hard, heavy, found on the ground",    hard:"A small hard solid mineral matter" },
+  { word:"SAND",   emoji:"🏖", easy:"Tiny grains you find at the beach",      medium:"🏖 Fine grains, found at the beach",     hard:"A granular material composed of rock particles" },
+  // Family and Body
+  { word:"MUM",    emoji:"👩", easy:"The woman in your family who looks after you",medium:"👩 Your female parent",             hard:"A maternal figure in a family unit" },
+  { word:"DAD",    emoji:"👨", easy:"The man in your family who looks after you",medium:"👨 Your male parent",                hard:"A paternal figure in a family unit" },
+  { word:"HAND",   emoji:"🖐", easy:"The part of your body at the end of your arm",medium:"🖐 Five fingers, end of your arm",  hard:"The terminal part of the human arm" },
+  { word:"FOOT",   emoji:"🦶", easy:"The part of your body at the end of your leg",medium:"🦶 Ten toes, end of your leg",      hard:"The terminal part of the lower limb" },
+  { word:"EYE",    emoji:"👁", easy:"The part of your face that you see with",medium:"👁 You see with these",                  hard:"The organ of sight" },
+  { word:"EAR",    emoji:"👂", easy:"The part of your head that you hear with",medium:"👂 You hear with these",               hard:"The organ of hearing" },
+  { word:"NOSE",   emoji:"👃", easy:"The part of your face that you smell with",medium:"👃 You smell with this",              hard:"The olfactory organ" },
+  { word:"HAIR",   emoji:"💇", easy:"The soft strands that grow on your head",medium:"💇 Grows on your head",                 hard:"A protein filament that grows from follicles" },
+  { word:"TEETH",  emoji:"🦷", easy:"The hard white things in your mouth",    medium:"🦷 Hard, white, inside your mouth",     hard:"Hard calcified structures in the oral cavity" },
+  // School and Objects
+  { word:"BOOK",   emoji:"📚", easy:"Something you read with pages and words",medium:"📚 Has pages, you read it",             hard:"A written or printed work of literature" },
+  { word:"PEN",    emoji:"🖊", easy:"A tool you use to write",                medium:"🖊 Write with this",                     hard:"An instrument for writing with ink" },
+  { word:"DESK",   emoji:"🪑", easy:"A table where you do your schoolwork",   medium:"🪑 You sit at this to work or study",   hard:"A piece of furniture used for academic work" },
+  { word:"BAG",    emoji:"🎒", easy:"You carry your books and lunch in this", medium:"🎒 Carry your things in this",           hard:"A flexible container for carrying items" },
+  { word:"CLOCK",  emoji:"🕐", easy:"A round thing on the wall that shows the time",medium:"🕐 Shows you what time it is",     hard:"An instrument that measures and displays time" },
+  { word:"DOOR",   emoji:"🚪", easy:"You open this to go in or out of a room",medium:"🚪 Open it to enter a room",            hard:"A hinged or sliding barrier at an entrance" },
+  { word:"BALL",   emoji:"⚽", easy:"A round toy you can throw or kick",      medium:"⚽ Round, you kick or throw it",         hard:"A spherical object used in sport" },
+  { word:"KITE",   emoji:"🪁", easy:"A toy that flies in the wind on a string",medium:"🪁 Flies in the wind on a string",     hard:"A tethered aircraft that relies on wind" },
+  { word:"DRUM",   emoji:"🥁", easy:"A musical instrument you hit to make a beat",medium:"🥁 You hit it to make music",       hard:"A percussion instrument with a membrane" },
+];
+
+// ===================== STATE =====================
+let currentDifficulty = 'easy';
+let grid = [];
+let placedWords = [];
+let selectedCell = null;
+let selectedDirection = 'across';
+let score = 0;
+let GRID_SIZE = 15;
+
+const DIFFICULTY_COUNT = { easy:[6,8], medium:[10,12], hard:[15,18] };
+
+function setDifficulty(diff) {
+  currentDifficulty = diff;
+  document.querySelectorAll('.diff-btn').forEach(b => {
+    b.className = 'diff-btn';
+    if (b.dataset.diff === diff) b.classList.add('active-' + diff);
+  });
+  newGame();
+}
+
+function getClue(word) {
+  if (currentDifficulty === 'easy') return word.emoji + ' ' + word.easy;
+  if (currentDifficulty === 'medium') return word.medium;
+  return word.hard;
+}
+
+// ===================== LAYOUT GENERATION =====================
+function shuffle(arr) {
+  for (let i = arr.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]] = [arr[j],arr[i]];
+  }
+  return arr;
+}
+
+function initGrid(size) {
+  return Array.from({length:size}, () => Array(size).fill(null));
+}
+
+function canPlace(g, word, row, col, dir) {
+  const len = word.length;
+  if (dir === 'across') {
+    if (col < 0 || col+len > GRID_SIZE) return false;
+    if (col > 0 && g[row][col-1] !== null) return false;
+    if (col+len < GRID_SIZE && g[row][col+len] !== null) return false;
+    let hasIntersect = false;
+    for (let i=0; i<len; i++) {
+      const c = col+i;
+      if (g[row][c] === null) {
+        // check adjacency above/below
+        if (row > 0 && g[row-1][c] !== null) return false;
+        if (row < GRID_SIZE-1 && g[row+1][c] !== null) return false;
+      } else {
+        if (g[row][c] !== word[i]) return false;
+        hasIntersect = true;
+      }
+    }
+    return true;
+  } else {
+    if (row < 0 || row+len > GRID_SIZE) return false;
+    if (row > 0 && g[row-1][col] !== null) return false;
+    if (row+len < GRID_SIZE && g[row+len][col] !== null) return false;
+    let hasIntersect = false;
+    for (let i=0; i<len; i++) {
+      const r = row+i;
+      if (g[r][col] === null) {
+        if (col > 0 && g[r][col-1] !== null) return false;
+        if (col < GRID_SIZE-1 && g[r][col+1] !== null) return false;
+      } else {
+        if (g[r][col] !== word[i]) return false;
+        hasIntersect = true;
+      }
+    }
+    return true;
+  }
+}
+
+function placeWord(g, word, row, col, dir) {
+  for (let i=0; i<word.length; i++) {
+    if (dir === 'across') g[row][col+i] = word[i];
+    else g[row+i][col] = word[i];
+  }
+}
+
+function buildCrossword(words) {
+  let g = initGrid(GRID_SIZE);
+  let placed = [];
+  // place first word in center
+  const first = words[0];
+  const startC = Math.floor((GRID_SIZE - first.word.length) / 2);
+  const startR = Math.floor(GRID_SIZE / 2);
+  placeWord(g, first.word, startR, startC, 'across');
+  placed.push({ ...first, row:startR, col:startC, dir:'across' });
+
+  for (let wi=1; wi<words.length; wi++) {
+    const w = words[wi];
+    let candidates = [];
+    // try to intersect with any placed word
+    for (const pw of placed) {
+      for (let li=0; li<pw.word.length; li++) {
+        const sharedLetter = pw.word[li];
+        for (let wi2=0; wi2<w.word.length; wi2++) {
+          if (w.word[wi2] !== sharedLetter) continue;
+          let row, col, dir;
+          if (pw.dir === 'across') {
+            dir = 'down';
+            row = pw.row - wi2;
+            col = pw.col + li;
+          } else {
+            dir = 'across';
+            row = pw.row + li;
+            col = pw.col - wi2;
+          }
+          if (canPlace(g, w.word, row, col, dir)) {
+            candidates.push({row, col, dir});
+          }
+        }
+      }
+    }
+    if (candidates.length > 0) {
+      const pick = candidates[Math.floor(Math.random()*candidates.length)];
+      placeWord(g, w.word, pick.row, pick.col, pick.dir);
+      placed.push({...w, row:pick.row, col:pick.col, dir:pick.dir});
+    }
+  }
+  return {g, placed};
+}
+
+function cropGrid(g, placed) {
+  let minR=GRID_SIZE, maxR=0, minC=GRID_SIZE, maxC=0;
+  for (let r=0; r<GRID_SIZE; r++) for (let c=0; c<GRID_SIZE; c++) {
+    if (g[r][c] !== null) {
+      minR=Math.min(minR,r); maxR=Math.max(maxR,r);
+      minC=Math.min(minC,c); maxC=Math.max(maxC,c);
+    }
+  }
+  const newG = [];
+  for (let r=minR; r<=maxR; r++) newG.push(g[r].slice(minC, maxC+1));
+  const newPlaced = placed.map(p => ({...p, row:p.row-minR, col:p.col-minC}));
+  return {g:newG, placed:newPlaced, rows:maxR-minR+1, cols:maxC-minC+1};
+}
+
+function assignNumbers(placed, rows, cols) {
+  // find cells that start a word
+  const starts = {};
+  for (const p of placed) {
+    const key = p.row+','+p.col;
+    if (!starts[key]) starts[key] = {row:p.row, col:p.col, across:false, down:false};
+    if (p.dir==='across') starts[key].across = true;
+    else starts[key].down = true;
+  }
+  // sort by row then col
+  const sorted = Object.values(starts).sort((a,b)=> a.row===b.row ? a.col-b.col : a.row-b.row);
+  let num = 1;
+  const numMap = {};
+  for (const s of sorted) {
+    numMap[s.row+','+s.col] = num++;
+  }
+  return numMap;
+}
+
+// ===================== RENDER =====================
+function newGame() {
+  hideBanner();
+  closeModal(true);
+  const [min,max] = DIFFICULTY_COUNT[currentDifficulty];
+  const count = min + Math.floor(Math.random()*(max-min+1));
+  const pool = shuffle([...WORD_BANK]).slice(0, count);
+  // Sort by length desc for better placement
+  pool.sort((a,b) => b.word.length - a.word.length);
+
+  let result;
+  for (let attempt=0; attempt<5; attempt++) {
+    const shuffled = shuffle([...pool]);
+    const {g, placed} = buildCrossword(shuffled);
+    if (placed.length >= Math.max(3, Math.floor(count*0.6))) {
+      result = cropGrid(g, placed);
+      break;
+    }
+  }
+  if (!result) {
+    // fallback: use just 4 words
+    const small = shuffle([...WORD_BANK]).slice(0,4);
+    small.sort((a,b) => b.word.length - a.word.length);
+    const {g, placed} = buildCrossword(small);
+    result = cropGrid(g, placed);
+  }
+
+  grid = result.g;
+  placedWords = result.placed;
+  selectedCell = null;
+  selectedDirection = 'across';
+  renderGrid(result.rows, result.cols);
+  renderClues();
+}
+
+function renderGrid(rows, cols) {
+  const table = document.getElementById('crossword-grid');
+  const numMap = assignNumbers(placedWords, rows, cols);
+  // build set of active cells
+  const activeCells = new Set();
+  for (const p of placedWords) {
+    for (let i=0; i<p.word.length; i++) {
+      if (p.dir==='across') activeCells.add(p.row+','+(p.col+i));
+      else activeCells.add((p.row+i)+','+p.col);
+    }
+  }
+  let html = '';
+  for (let r=0; r<rows; r++) {
+    html += '<tr>';
+    for (let c=0; c<cols; c++) {
+      if (!activeCells.has(r+','+c)) {
+        html += '<td><div class="cell-black"></div></td>';
+      } else {
+        const num = numMap[r+','+c];
+        html += `<td><div class="cell-input-wrap" id="cell-${r}-${c}" onclick="selectCell(${r},${c})">`;
+        if (num) html += `<span class="cell-num">${num}</span>`;
+        html += `<span class="cell-letter" id="letter-${r}-${c}"></span>`;
+        html += `</div></td>`;
+      }
+    }
+    html += '</tr>';
+  }
+  table.innerHTML = html;
+  // keyboard
+  document.onkeydown = handleKey;
+}
+
+function renderClues() {
+  const numMap = assignNumbers(placedWords, grid.length, grid[0].length);
+  const across = placedWords.filter(p=>p.dir==='across').sort((a,b)=>{
+    return numMap[a.row+','+a.col] - numMap[b.row+','+b.col];
+  });
+  const down = placedWords.filter(p=>p.dir==='down').sort((a,b)=>{
+    return numMap[a.row+','+a.col] - numMap[b.row+','+b.col];
+  });
+  function clueHTML(list, dir) {
+    return list.map(p => {
+      const num = numMap[p.row+','+p.col];
+      return `<div class="clue-item" id="clue-${dir}-${num}" onclick="selectClue(${p.row},${p.col},'${dir}')">
+        <span class="clue-num-badge">${num}</span>
+        <span class="clue-text">${getClue(p)}</span>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('clues-across').innerHTML = clueHTML(across, 'across');
+  document.getElementById('clues-down').innerHTML = clueHTML(down, 'down');
+}
+
+// ===================== INTERACTION =====================
+function selectCell(r, c) {
+  // toggle direction if same cell
+  if (selectedCell && selectedCell[0]===r && selectedCell[1]===c) {
+    selectedDirection = selectedDirection==='across' ? 'down' : 'across';
+    // if no word in that direction, toggle back
+    const hasDir = placedWords.some(p => p.dir===selectedDirection && isCellInWord(r,c,p));
+    if (!hasDir) selectedDirection = selectedDirection==='across'?'down':'across';
+  } else {
+    selectedCell = [r,c];
+    // pick direction based on available words
+    const hasAcross = placedWords.some(p => p.dir==='across' && isCellInWord(r,c,p));
+    const hasDown = placedWords.some(p => p.dir==='down' && isCellInWord(r,c,p));
+    if (!hasAcross && hasDown) selectedDirection = 'down';
+    else selectedDirection = 'across';
+  }
+  selectedCell = [r,c];
+  highlightCells();
+  highlightClue();
+}
+
+function selectClue(r, c, dir) {
+  selectedCell = [r,c];
+  selectedDirection = dir;
+  highlightCells();
+  highlightClue();
+  // scroll grid into view on mobile
+  document.getElementById('crossword-grid').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function isCellInWord(r, c, p) {
+  if (p.dir==='across') return p.row===r && c>=p.col && c<p.col+p.word.length;
+  return p.col===c && r>=p.row && r<p.row+p.word.length;
+}
+
+function getWordForCell(r, c, dir) {
+  return placedWords.find(p => p.dir===dir && isCellInWord(r,c,p));
+}
+
+function highlightCells() {
+  // clear all
+  document.querySelectorAll('.cell-input-wrap').forEach(el => {
+    el.classList.remove('active','active-word','correct','incorrect');
+  });
+  if (!selectedCell) return;
+  const [r,c] = selectedCell;
+  // highlight word
+  const word = getWordForCell(r, c, selectedDirection);
+  if (word) {
+    for (let i=0; i<word.word.length; i++) {
+      const wr = word.dir==='across' ? word.row : word.row+i;
+      const wc = word.dir==='across' ? word.col+i : word.col;
+      const el = document.getElementById(`cell-${wr}-${wc}`);
+      if (el) el.classList.add('active-word');
+    }
+  }
+  const active = document.getElementById(`cell-${r}-${c}`);
+  if (active) { active.classList.remove('active-word'); active.classList.add('active'); }
+}
+
+function highlightClue() {
+  document.querySelectorAll('.clue-item').forEach(el => el.classList.remove('active-clue'));
+  if (!selectedCell) return;
+  const numMap = assignNumbers(placedWords, grid.length, grid[0].length);
+  const word = getWordForCell(selectedCell[0], selectedCell[1], selectedDirection);
+  if (word) {
+    const num = numMap[word.row+','+word.col];
+    const clueEl = document.getElementById(`clue-${selectedDirection}-${num}`);
+    if (clueEl) { clueEl.classList.add('active-clue'); clueEl.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+  }
+}
+
+function handleKey(e) {
+  if (!selectedCell) return;
+  const [r, c] = selectedCell;
+  if (e.key === 'Backspace' || e.key === 'Delete') {
+    const el = document.getElementById(`letter-${r}-${c}`);
+    if (el && el.textContent) { el.textContent = ''; return; }
+    moveCursor(-1);
+    const prev = selectedCell;
+    const el2 = document.getElementById(`letter-${prev[0]}-${prev[1]}`);
+    if (el2) el2.textContent = '';
+    return;
+  }
+  if (e.key === 'ArrowRight') { selectedDirection='across'; moveCursor(1); return; }
+  if (e.key === 'ArrowLeft')  { selectedDirection='across'; moveCursor(-1); return; }
+  if (e.key === 'ArrowDown')  { selectedDirection='down';   moveCursor(1); return; }
+  if (e.key === 'ArrowUp')    { selectedDirection='down';   moveCursor(-1); return; }
+  if (e.key === 'Tab') { e.preventDefault(); cycleWord(e.shiftKey?-1:1); return; }
+  if (/^[a-zA-Z]$/.test(e.key)) {
+    const el = document.getElementById(`letter-${r}-${c}`);
+    if (el) el.textContent = e.key.toUpperCase();
+    moveCursor(1);
+  }
+}
+
+function moveCursor(delta) {
+  if (!selectedCell) return;
+  let [r, c] = selectedCell;
+  const rows = grid.length, cols = grid[0].length;
+  let nr = r, nc = c;
+  if (selectedDirection === 'across') nc += delta;
+  else nr += delta;
+  if (nr>=0 && nr<rows && nc>=0 && nc<cols && grid[nr][nc] !== null) {
+    selectedCell = [nr, nc];
+    highlightCells();
+    highlightClue();
+  }
+}
+
+function cycleWord(delta) {
+  const sorted = [...placedWords].sort((a,b)=>{
+    if (a.row!==b.row) return a.row-b.row;
+    if (a.col!==b.col) return a.col-b.col;
+    return a.dir==='across'?-1:1;
+  });
+  if (!selectedCell) { selectClue(sorted[0].row, sorted[0].col, sorted[0].dir); return; }
+  const cur = getWordForCell(selectedCell[0], selectedCell[1], selectedDirection);
+  const idx = sorted.findIndex(p => p===cur);
+  const next = sorted[(idx+delta+sorted.length)%sorted.length];
+  selectClue(next.row, next.col, next.dir);
+}
+
+// ===================== SUBMIT =====================
+function submitAnswer() {
+  hideBanner();
+  let correct = 0, total = placedWords.length;
+  for (const p of placedWords) {
+    let wordCorrect = true;
+    for (let i=0; i<p.word.length; i++) {
+      const r = p.dir==='across' ? p.row : p.row+i;
+      const c = p.dir==='across' ? p.col+i : p.col;
+      const el = document.getElementById(`letter-${r}-${c}`);
+      const entered = el ? el.textContent.trim().toUpperCase() : '';
+      if (entered !== p.word[i]) wordCorrect = false;
+    }
+    if (wordCorrect) correct++;
+  }
+
+  if (correct === total) {
+    score += total * (currentDifficulty==='hard'?3 : currentDifficulty==='medium'?2:1);
+    document.getElementById('score-display').textContent = 'Score: ' + score;
+    showModal(true, correct, total);
+  } else {
+    // colour cells
+    for (const p of placedWords) {
+      for (let i=0; i<p.word.length; i++) {
+        const r = p.dir==='across' ? p.row : p.row+i;
+        const c = p.dir==='across' ? p.col+i : p.col;
+        const cellEl = document.getElementById(`cell-${r}-${c}`);
+        const letterEl = document.getElementById(`letter-${r}-${c}`);
+        if (!cellEl || !letterEl) continue;
+        const entered = letterEl.textContent.trim().toUpperCase();
+        if (entered === p.word[i]) cellEl.classList.add('correct');
+        else if (entered) cellEl.classList.add('incorrect');
+      }
+    }
+    showBanner(`You got ${correct} out of ${total} words correct. Keep going! ✏️`);
+  }
+}
+
+function revealHint() {
+  if (!selectedCell) { showBanner('Click a cell first, then use the hint!'); return; }
+  const [r,c] = selectedCell;
+  const word = getWordForCell(r, c, selectedDirection);
+  if (!word) return;
+  // reveal one letter in the word that is empty
+  for (let i=0; i<word.word.length; i++) {
+    const wr = word.dir==='across' ? word.row : word.row+i;
+    const wc = word.dir==='across' ? word.col+i : word.col;
+    const el = document.getElementById(`letter-${wr}-${wc}`);
+    if (el && !el.textContent) { el.textContent = word.word[i]; return; }
+  }
+  // all filled, reveal first
+  const el = document.getElementById(`letter-${word.row}-${word.col}`);
+  if (el) el.textContent = word.word[0];
+}
+
+function clearAll() {
+  document.querySelectorAll('.cell-letter').forEach(el => el.textContent = '');
+  document.querySelectorAll('.cell-input-wrap').forEach(el => {
+    el.classList.remove('correct','incorrect');
+  });
+  hideBanner();
+}
+
+function showBanner(msg) {
+  const b = document.getElementById('result-banner');
+  b.textContent = msg;
+  b.className = 'result-banner show partial';
+}
+
+function hideBanner() {
+  const b = document.getElementById('result-banner');
+  b.className = 'result-banner';
+}
+
+function showModal(success, correct, total) {
+  const m = document.getElementById('modal');
+  document.getElementById('modal-icon').textContent = success ? '🎉' : '😅';
+  const title = document.getElementById('modal-title');
+  title.textContent = success ? 'Congratulations!' : 'Almost there!';
+  title.className = 'modal-title ' + (success?'success':'fail');
+  document.getElementById('modal-sub').textContent = success
+    ? `You completed all ${total} words! Score: ${score}`
+    : `You got ${correct} out of ${total}. Try again!`;
+  m.classList.add('show');
+}
+
+function closeModal(silent) {
+  document.getElementById('modal').classList.remove('show');
+  if (!silent) newGame();
+}
+
+// ===================== INIT =====================
+window.onload = () => newGame();
+</script>
+</body>
+</html>
